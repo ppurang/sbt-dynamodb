@@ -47,8 +47,12 @@ object DynamoDBLocal extends AutoPlugin {
         import sys.process._
         val outputFile = new File(targetDir, s"dynamodb_local_$ver.tar.gz")
         if(!targetDir.exists()) targetDir.mkdirs()
-        (new URL(url.getOrElse(DefaultDynamoDBLocalUrlTemplate(ver))) #> outputFile).!!
+        if(!outputFile.exists()) {
+          streamz.log.info(s"Downloading file to [${outputFile.getAbsolutePath}]")
+          (new URL(url.getOrElse(DefaultDynamoDBLocalUrlTemplate(ver))) #> outputFile).!!
+        }
         if(outputFile.exists()) {
+          streamz.log.info(s"Extracting file: [${outputFile.getAbsolutePath}]")
           Process(Seq("tar", "xzf", outputFile.getAbsolutePath), targetDir).!
           outputFile
         } else {
@@ -64,6 +68,7 @@ object DynamoDBLocal extends AutoPlugin {
           (if(inMem) Seq("-inMemory") else Nil)
 
         if(!Utils.isDynamoDBLocalRunning(port.getOrElse(DefaultPort))) {
+          streamz.log.info("Starting dyanmodb local:")
           Process(args).run()
           streamz.log.info("Waiting for dyanmodb local:")
           Utils.waitForDynamoDBLocal(port.getOrElse(DefaultPort), (s: String) => streamz.log.info(s))
